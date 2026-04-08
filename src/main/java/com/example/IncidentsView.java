@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@Route("")
+@Route(value = "", layout = MainLayout.class)
 @PageTitle("Recent Incidents")
 public class IncidentsView extends VerticalLayout {
 
