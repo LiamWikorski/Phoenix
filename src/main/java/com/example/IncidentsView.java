@@ -70,16 +70,8 @@ public class IncidentsView extends VerticalLayout {
                 .setHeader("Log Type")
                 .setAutoWidth(true);
 
-        incidentsGrid.addColumn(IncidentRecord::service)
-                .setHeader("Service")
-                .setAutoWidth(true);
-
         incidentsGrid.addColumn(IncidentRecord::pod)
                 .setHeader("Pod")
-                .setAutoWidth(true);
-
-        incidentsGrid.addColumn(IncidentRecord::namespace)
-                .setHeader("Namespace")
                 .setAutoWidth(true);
 
         incidentsGrid.addColumn(IncidentRecord::severity)
