@@ -64,6 +64,22 @@ public class BigQueryIncidentService {
             ORDER BY incident_count DESC;
             """;
 
+    private static final String ERROR_FREQUENCY_QUERY = """
+            WITH latest_incidents AS (
+                SELECT message
+                FROM `{unifiedTable}`
+                WHERE message IS NOT NULL AND message != ''
+                ORDER BY timestamp DESC
+                LIMIT 100
+            )
+            SELECT
+              message,
+              COUNT(*) AS message_count
+            FROM latest_incidents
+            GROUP BY message
+            ORDER BY message_count DESC;
+            """;
+
     private final BigQuery bigQuery;
     private final BigQueryProperties properties;
 
@@ -149,6 +165,43 @@ public class BigQueryIncidentService {
         }
     }
 
+    public List<ErrorMessageCount> fetchErrorMessageCounts() {
+        String unifiedTable = String.format("%s.%s.%s",
+                properties.getProjectId(), properties.getDataset(), properties.getUnifiedTable());
+
+        String queryText = ERROR_FREQUENCY_QUERY.replace("{unifiedTable}", unifiedTable);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryText)
+                .setUseLegacySql(false)
+                .build();
+
+        try {
+            TableResult result;
+            if (properties.getLocation() != null && !properties.getLocation().isBlank()) {
+                JobId.Builder jobIdBuilder = JobId.newBuilder()
+                        .setJob("phoenix_error_frequency_" + UUID.randomUUID());
+                if (properties.getProjectId() != null && !properties.getProjectId().isBlank()) {
+                    jobIdBuilder.setProject(properties.getProjectId());
+                }
+                jobIdBuilder.setLocation(properties.getLocation());
+                result = bigQuery.query(queryConfig, jobIdBuilder.build());
+            } else {
+                result = bigQuery.query(queryConfig);
+            }
+
+            List<ErrorMessageCount> counts = new ArrayList<>();
+            result.iterateAll().forEach(row -> counts.add(mapErrorMessageCountRow(row)));
+            return counts;
+        } catch (BigQueryException ex) {
+            LOGGER.error("Failed to load error frequency data from BigQuery", ex);
+            throw new RuntimeException("Unable to load error frequency data from BigQuery: " + ex.getMessage(), ex);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            LOGGER.error("BigQuery error frequency query was interrupted", ex);
+            throw new RuntimeException("BigQuery error frequency query was interrupted", ex);
+        }
+    }
+
     private IncidentRecord mapRow(FieldValueList row) {
         FieldValue timestampValue = row.get("timestamp");
         if (timestampValue == null || timestampValue.isNull()) {
@@ -176,6 +229,16 @@ public class BigQueryIncidentService {
         }
         long count = countValue.getLongValue();
         return new PodIncidentCount(pod, count);
+    }
+
+    private ErrorMessageCount mapErrorMessageCountRow(FieldValueList row) {
+        String message = getString(row.get("message"));
+        FieldValue countValue = row.get("message_count");
+        if (countValue == null || countValue.isNull()) {
+            throw new IllegalStateException("Message count is required for error frequency rows");
+        }
+        long count = countValue.getLongValue();
+        return new ErrorMessageCount(message, count);
     }
 
     private String normalisePod(FieldValue podValue) {
