@@ -3,6 +3,7 @@ package com.example.context;
 import com.example.bigquery.IncidentRecord;
 import com.example.bigquery.PodIncidentCount;
 import com.example.github.GithubCommitDto;
+import com.example.repo.RepositoryContextResponse;
 import java.util.List;
 
 /**
@@ -13,6 +14,7 @@ public record ContextPayload(
         String repository,
         List<IncidentRecord> incidents,
         List<PodIncidentCount> incidentsPerPod,
-        List<GithubCommitDto> commits
+        List<GithubCommitDto> commits,
+        RepositoryContextResponse repositoryContext
 ) {
 }
