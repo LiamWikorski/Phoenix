@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import com.example.context.ContextProperties;
+import com.example.llm.LlmProperties;
 import com.example.repo.RepoProperties;
 
 @SpringBootApplication
@@ -11,7 +12,8 @@ import com.example.repo.RepoProperties;
         com.example.config.BigQueryProperties.class,
         com.example.config.GithubProperties.class,
         ContextProperties.class,
-        RepoProperties.class
+        RepoProperties.class,
+        LlmProperties.class
 })
 public class Main {
     public static void main(String[] args) {
