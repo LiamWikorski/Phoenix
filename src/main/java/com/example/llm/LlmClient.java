@@ -84,12 +84,31 @@ public class LlmClient {
 
     private LlmResponse parseResponse(String body) throws IOException {
         JsonNode root = mapper.readTree(body);
-        JsonNode messageContent = root.path("choices").path(0).path("message").path("content");
-        if (messageContent.isMissingNode()) {
+        JsonNode choice = root.path("choices").path(0);
+        String finishReason = choice.path("finish_reason").asText("");
+        if (!finishReason.isBlank() && !"stop".equals(finishReason)) {
+            throw new IllegalStateException("LLM response not complete: finish_reason=" + finishReason);
+        }
+
+        JsonNode messageContent = choice.path("message").path("content");
+        if (!messageContent.isTextual()) {
             throw new IllegalStateException("LLM response missing content");
         }
-        JsonNode parsed = mapper.readTree(messageContent.asText());
-        return mapper.treeToValue(parsed, LlmResponse.class);
+
+        String contentText = messageContent.asText();
+        try {
+            JsonNode parsed = mapper.readTree(contentText);
+            return mapper.treeToValue(parsed, LlmResponse.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new IllegalStateException(
+                    "LLM response content is not valid JSON: " + abbreviate(contentText, 500), ex);
+        }
+    }
+
+    private String abbreviate(String text, int max) {
+        if (text == null) return "";
+        if (text.length() <= max) return text;
+        return text.substring(0, max) + "...";
     }
 
     private void logPayload(String type, String payload) {

@@ -8,6 +8,8 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.example.MainLayout;
 import com.example.llm.LlmResponse;
+import com.example.llm.LlmApplyResult;
+import com.example.llm.LlmApplyService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -19,20 +21,24 @@ public class ContextView extends VerticalLayout {
 
     private final ContextAssemblerService assemblerService;
     private final ContextAnalysisService analysisService;
+    private final LlmApplyService applyService;
     private final ObjectMapper mapper;
     private final TextArea output;
     private final TextArea llmOutput;
+    private final TextArea applyOutput;
 
     @Autowired
-    public ContextView(ContextAssemblerService assemblerService, ContextAnalysisService analysisService) {
+    public ContextView(ContextAssemblerService assemblerService, ContextAnalysisService analysisService, LlmApplyService applyService) {
         this.assemblerService = assemblerService;
         this.analysisService = analysisService;
+        this.applyService = applyService;
         this.mapper = new ObjectMapper()
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         this.output = new TextArea("Context JSON");
         this.llmOutput = new TextArea("LLM Analysis");
+        this.applyOutput = new TextArea("Apply Result");
 
         setSizeFull();
         setPadding(true);
@@ -44,6 +50,9 @@ public class ContextView extends VerticalLayout {
         Button analyze = new Button("Analyze with LLM", event -> analyze());
         analyze.setWidth("160px");
 
+        Button apply = new Button("Apply patches", event -> apply());
+        apply.setWidth("160px");
+
         output.setWidthFull();
         output.setHeight("600px");
         output.setReadOnly(true);
@@ -54,8 +63,13 @@ public class ContextView extends VerticalLayout {
         llmOutput.setReadOnly(true);
         llmOutput.getStyle().set("font-family", "monospace");
 
-        add(generate, analyze, output, llmOutput);
-        expand(output, llmOutput);
+        applyOutput.setWidthFull();
+        applyOutput.setHeight("240px");
+        applyOutput.setReadOnly(true);
+        applyOutput.getStyle().set("font-family", "monospace");
+
+        add(generate, analyze, apply, output, llmOutput, applyOutput);
+        expand(output, llmOutput, applyOutput);
     }
 
     private void build() {
@@ -73,6 +87,21 @@ public class ContextView extends VerticalLayout {
             llmOutput.setValue(mapper.writeValueAsString(response));
         } catch (Exception ex) {
             Notification.show("LLM analysis failed: " + ex.getMessage());
+        }
+    }
+
+    private void apply() {
+        try {
+            String llmText = llmOutput.getValue();
+            if (llmText == null || llmText.isBlank()) {
+                Notification.show("Run analysis first.");
+                return;
+            }
+            LlmResponse response = mapper.readValue(llmText, LlmResponse.class);
+            LlmApplyResult result = applyService.apply(response);
+            applyOutput.setValue(mapper.writeValueAsString(result));
+        } catch (Exception ex) {
+            Notification.show("Apply failed: " + ex.getMessage());
         }
     }
 }
