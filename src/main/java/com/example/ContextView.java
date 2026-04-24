@@ -1,18 +1,20 @@
-package com.example.context;
+package com.example;
 
+import com.example.context.ContextAnalysisService;
+import com.example.context.ContextAssemblerService;
+import com.example.context.ContextPayload;
+import com.example.llm.LlmApplyResult;
+import com.example.llm.LlmApplyService;
+import com.example.llm.LlmResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.example.MainLayout;
-import com.example.llm.LlmResponse;
-import com.example.llm.LlmApplyResult;
-import com.example.llm.LlmApplyService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Route(value = "context", layout = MainLayout.class)

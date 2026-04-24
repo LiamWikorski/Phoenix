@@ -6,9 +6,6 @@ import com.example.github.GithubCommitDto;
 import com.example.repo.RepositoryContextResponse;
 import java.util.List;
 
-/**
- * Aggregated context payload for LLM usage.
- */
 public record ContextPayload(
         String generatedAt,
         String repository,

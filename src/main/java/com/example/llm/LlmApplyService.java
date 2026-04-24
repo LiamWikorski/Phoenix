@@ -11,7 +11,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.springframework.stereotype.Service;
-import com.example.repo.RepoProperties;
+import com.example.config.RepoProperties;
 
 @Service
 public class LlmApplyService {
@@ -51,7 +51,6 @@ public class LlmApplyService {
         try (Repository repo = openRepo(repoProperties.getPath());
              Git git = new Git(repo)) {
 
-            // Validate patches
             for (LlmResponse.Patch patch : response.patches()) {
                 validatePatch(patch);
                 if (patch.patch() != null) {
@@ -59,13 +58,11 @@ public class LlmApplyService {
                 }
             }
 
-            // Create temp branch
             git.checkout().setCreateBranch(true).setName(branchName).call();
 
             List<String> appliedFiles = new ArrayList<>();
             List<LlmApplyResult.SkippedFile> skippedFiles = new ArrayList<>();
 
-            // Apply patches (prefer find/replace; fallback to diff if provided)
             for (LlmResponse.Patch patch : response.patches()) {
                 boolean applied = false;
                 if (patch.find() != null && patch.replace() != null) {
@@ -91,7 +88,6 @@ public class LlmApplyService {
                 }
             }
 
-            // Run single validation command (skip if maven not available)
             Integer exit = null;
             try {
                 exit = runCommand("mvn -q test", log);
@@ -107,7 +103,6 @@ public class LlmApplyService {
                 return new LlmApplyResult(false, false, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), "No edits applied");
             }
 
-            // Commit changes
             git.commit().setAll(true).setMessage("chore: apply llm fixes").call();
             return new LlmApplyResult(true, skippedFiles.isEmpty() ? false : true, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), skippedFiles.isEmpty() ? "Applied successfully" : "Applied with skips");
         } catch (Exception e) {
@@ -173,7 +168,7 @@ public class LlmApplyService {
         }
 
         String updated = content.replaceFirst(java.util.regex.Pattern.quote(find), java.util.regex.Matcher.quoteReplacement(replace));
-        updated = updated.replace("\n", lineEnding); // preserve original line endings
+        updated = updated.replace("\n", lineEnding);
         java.nio.file.Files.writeString(target, updated, StandardCharsets.UTF_8);
 
         if (!filesTouched.contains(patch.path())) {
@@ -193,7 +188,6 @@ public class LlmApplyService {
     }
 
     private void collectTouchedFiles(String unifiedDiff, List<String> filesTouched) throws IOException {
-        // Simplified: parse file names from diff headers and normalize a/ b/ prefixes
         for (String line : unifiedDiff.split("\n")) {
             if (line.startsWith("+++ ") || line.startsWith("--- ")) {
                 String name = normalizeDiffPath(line.substring(4).trim());
@@ -205,7 +199,6 @@ public class LlmApplyService {
     }
 
     private void applyUnifiedDiff(Git git, String unifiedDiff, StringBuilder log) throws IOException, InterruptedException {
-        // Use native git with --recount to tolerate LLM header/body count mismatches and capture output.
         java.nio.file.Path temp = java.nio.file.Files.createTempFile("llm-patch", ".diff");
         java.nio.file.Files.writeString(temp, unifiedDiff, StandardCharsets.UTF_8);
 
@@ -279,7 +272,6 @@ public class LlmApplyService {
     }
 
     private List<String> splitCommand(String command) {
-        // Simple split by space; acceptable for mvn -q test
         String[] parts = command.split(" ");
         List<String> list = new ArrayList<>();
         for (String p : parts) {

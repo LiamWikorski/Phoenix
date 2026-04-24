@@ -4,6 +4,7 @@ import com.example.bigquery.BigQueryIncidentService;
 import com.example.bigquery.IncidentRecord;
 import com.example.bigquery.PodIncidentCount;
 import com.example.config.GithubProperties;
+import com.example.config.ContextProperties;
 import com.example.github.GithubCommitDto;
 import com.example.github.GithubCommitService;
 import com.example.repo.RepositoryContextAssembler;

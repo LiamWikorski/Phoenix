@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import com.example.config.RepoProperties;
 
 import static java.util.Locale.ROOT;
 
@@ -21,7 +22,7 @@ public class RepositoryFileLoader {
 
     private static final Set<String> ALLOWED_EXTENSIONS;
     private static final Set<String> DENY_FOLDERS;
-    private static final List<String> ROOTS = List.of("src", "services", "apps");
+    private static final String ROOT_DIR = "src";
     private static final long MAX_FILE_SIZE_BYTES = 50 * 1024; // 50KB
     private static final int MAX_FILES = 20;
 
@@ -35,7 +36,7 @@ public class RepositoryFileLoader {
 
     static {
         ALLOWED_EXTENSIONS = Set.of(
-                ".java", ".ts", ".tsx", ".js", ".jsx", ".py", ".md", ".yaml", ".yml");
+                ".java", ".ts", ".tsx", ".js", ".jsx", ".py", ".md", ".yaml", ".yml", ".go", ".sh", ".cs", ".html");
 
         DENY_FOLDERS = new HashSet<>();
         Collections.addAll(DENY_FOLDERS,
@@ -57,15 +58,9 @@ public class RepositoryFileLoader {
         List<RepositoryFilePayload> collected = new ArrayList<>();
         Path repoRoot = Paths.get(rootPath);
 
-        for (String root : ROOTS) {
-            Path start = repoRoot.resolve(root);
-            if (!Files.exists(start)) {
-                continue;
-            }
+        Path start = repoRoot.resolve(ROOT_DIR);
+        if (Files.exists(start)) {
             walk(start, repoRoot, collected);
-            if (collected.size() >= MAX_FILES) {
-                break;
-            }
         }
 
         if (collected.isEmpty()) {
@@ -81,7 +76,6 @@ public class RepositoryFileLoader {
                 .max()
                 .orElse(Integer.MIN_VALUE);
 
-        // Fallback: if nothing scores positively, return first files alphabetically
         if (maxScore <= 0) {
             collected.sort((a, b) -> a.getPath().compareToIgnoreCase(b.getPath()));
             int end = Math.min(collected.size(), MAX_FILES);
@@ -135,7 +129,6 @@ public class RepositoryFileLoader {
                 results.add(new RepositoryFilePayload(relative, content));
             }
         } catch (IOException e) {
-            // Skip unreadable paths silently for simplicity
         }
     }
 
@@ -164,7 +157,6 @@ public class RepositoryFileLoader {
             score -= 3;
         }
 
-        // simple generated/fixture penalty heuristic
         if (lowerPath.contains("generated") || lowerPath.contains("fixtures") || lowerPath.contains("fixture")) {
             score -= 3;
         }
