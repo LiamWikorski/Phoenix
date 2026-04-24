@@ -2,7 +2,7 @@ package com.example.llm;
 
 import java.util.List;
 
-public record LlmApplyResult(
+public record AgentApplyResult(
         boolean success,
         boolean partialSuccess,
         String branchName,

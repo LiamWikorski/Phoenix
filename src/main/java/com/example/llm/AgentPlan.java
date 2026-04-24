@@ -2,7 +2,7 @@ package com.example.llm;
 
 import java.util.List;
 
-public record LlmResponse(
+public record AgentPlan(
         String summary,
         List<MajorIssue> majorIssues,
         List<Recommendation> recommendations,

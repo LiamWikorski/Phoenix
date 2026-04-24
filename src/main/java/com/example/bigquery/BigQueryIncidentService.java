@@ -80,6 +80,21 @@ public class BigQueryIncidentService {
             ORDER BY message_count DESC;
             """;
 
+    private static final String DAILY_ERROR_COUNTS_QUERY = """
+            WITH last_14_days AS (
+                SELECT DATE(timestamp) AS day
+                FROM `{unifiedTable}`
+                WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 14 DAY)
+            )
+            SELECT
+              FORMAT_DATE('%Y-%m-%d', day) AS day,
+              COUNT(*) AS error_count
+            FROM last_14_days
+            GROUP BY day
+            ORDER BY day DESC
+            LIMIT 14;
+            """;
+
     private final BigQuery bigQuery;
     private final BigQueryProperties properties;
 
@@ -202,6 +217,44 @@ public class BigQueryIncidentService {
         }
     }
 
+    public List<DailyErrorCount> fetchDailyErrorCounts() {
+        String unifiedTable = String.format("%s.%s.%s",
+                properties.getProjectId(), properties.getDataset(), properties.getUnifiedTable());
+
+        String queryText = DAILY_ERROR_COUNTS_QUERY.replace("{unifiedTable}", unifiedTable);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryText)
+                .setUseLegacySql(false)
+                .build();
+
+        try {
+            TableResult result;
+            if (properties.getLocation() != null && !properties.getLocation().isBlank()) {
+                JobId.Builder jobIdBuilder = JobId.newBuilder()
+                        .setJob("phoenix_daily_error_counts_" + UUID.randomUUID());
+                if (properties.getProjectId() != null && !properties.getProjectId().isBlank()) {
+                    jobIdBuilder.setProject(properties.getProjectId());
+                }
+                jobIdBuilder.setLocation(properties.getLocation());
+                result = bigQuery.query(queryConfig, jobIdBuilder.build());
+            } else {
+                result = bigQuery.query(queryConfig);
+            }
+
+            List<DailyErrorCount> counts = new ArrayList<>();
+            result.iterateAll().forEach(row -> counts.add(mapDailyErrorCountRow(row)));
+            counts.sort((a, b) -> b.day().compareTo(a.day()));
+            return counts;
+        } catch (BigQueryException ex) {
+            LOGGER.error("Failed to load daily error counts from BigQuery", ex);
+            throw new RuntimeException("Unable to load daily error counts from BigQuery: " + ex.getMessage(), ex);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            LOGGER.error("BigQuery daily error counts query was interrupted", ex);
+            throw new RuntimeException("BigQuery daily error counts query was interrupted", ex);
+        }
+    }
+
     private IncidentRecord mapRow(FieldValueList row) {
         FieldValue timestampValue = row.get("timestamp");
         if (timestampValue == null || timestampValue.isNull()) {
@@ -239,6 +292,16 @@ public class BigQueryIncidentService {
         }
         long count = countValue.getLongValue();
         return new ErrorMessageCount(message, count);
+    }
+
+    private DailyErrorCount mapDailyErrorCountRow(FieldValueList row) {
+        String day = getString(row.get("day"));
+        FieldValue countValue = row.get("error_count");
+        if (countValue == null || countValue.isNull()) {
+            throw new IllegalStateException("Error count is required for daily error count rows");
+        }
+        long count = countValue.getLongValue();
+        return new DailyErrorCount(day, count);
     }
 
     private String normalisePod(FieldValue podValue) {

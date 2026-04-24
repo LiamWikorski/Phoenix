@@ -37,7 +37,9 @@ public class MainLayout extends AppLayout {
         navigation.addItem(new SideNavItem("Recent Incidents", IncidentsView.class));
         navigation.addItem(new SideNavItem("Incidents per Pod", IncidentsPerPodView.class));
         navigation.addItem(new SideNavItem("Frequency of Errors", ErrorFrequencyView.class));
+        navigation.addItem(new SideNavItem("Error Volume (14d)", ErrorVolumeView.class));
         navigation.addItem(new SideNavItem("GitHub Commits", CommitsView.class));
+        navigation.addItem(new SideNavItem("Context", ContextView.class));
         return navigation;
     }
 }

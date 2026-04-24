@@ -3,6 +3,7 @@ import { injectGlobalWebcomponentCss } from 'Frontend/generated/jar-resources/th
 import '@vaadin/polymer-legacy-adapter/style-modules.js';
 import '@vaadin/vertical-layout/src/vaadin-vertical-layout.js';
 import 'Frontend/error-frequency-chart.ts';
+import 'Frontend/error-volume-chart.ts';
 import 'Frontend/incidents-per-pod-chart.ts';
 import '@vaadin/app-layout/src/vaadin-app-layout.js';
 import '@vaadin/field-highlighter/src/vaadin-field-highlighter.js';

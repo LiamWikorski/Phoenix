@@ -1,29 +1,32 @@
 package com.example.llm;
 
 import com.example.context.ContextAnalysisService;
+import com.example.llm.AgentPlan;
+import com.example.llm.AgentApplyResult;
+import com.example.llm.AgentPatchApplier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class LlmController {
+public class AgentController {
 
     private final ContextAnalysisService analysisService;
-    private final LlmApplyService applyService;
+    private final AgentPatchApplier applyService;
 
-    public LlmController(ContextAnalysisService analysisService, LlmApplyService applyService) {
+    public AgentController(ContextAnalysisService analysisService, AgentPatchApplier applyService) {
         this.analysisService = analysisService;
         this.applyService = applyService;
     }
 
     @GetMapping("/api/llm/analysis")
-    public LlmResponse analyze() {
+    public AgentPlan analyze() {
         return analysisService.analyze();
     }
 
     @PostMapping("/api/llm/apply")
-    public LlmApplyResult apply(@RequestBody LlmResponse response) {
+    public AgentApplyResult apply(@RequestBody AgentPlan response) {
         return applyService.apply(response);
     }
 }

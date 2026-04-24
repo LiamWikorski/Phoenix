@@ -18,21 +18,21 @@ import org.springframework.stereotype.Component;
 import com.example.config.LlmProperties;
 
 @Component
-public class LlmClient {
+public class AgentLlmClient {
 
-    private static final Logger log = LoggerFactory.getLogger(LlmClient.class);
+    private static final Logger log = LoggerFactory.getLogger(AgentLlmClient.class);
 
     private final HttpClient httpClient;
     private final ObjectMapper mapper;
     private final LlmProperties properties;
 
-    public LlmClient(LlmProperties properties) {
+    public AgentLlmClient(LlmProperties properties) {
         this.properties = properties;
         this.httpClient = HttpClient.newHttpClient();
         this.mapper = new ObjectMapper();
     }
 
-    public LlmResponse generate(String contextJson) {
+    public AgentPlan generate(String contextJson) {
         try {
             String body = buildRequestBody(contextJson);
 
@@ -67,12 +67,12 @@ public class LlmClient {
         ArrayNode messages = mapper.createArrayNode();
         ObjectNode system = mapper.createObjectNode();
         system.put("role", "system");
-        system.put("content", LlmPromptTemplates.SYSTEM_PROMPT);
+        system.put("content", AgentPromptTemplates.SYSTEM_PROMPT);
         messages.add(system);
 
         ObjectNode user = mapper.createObjectNode();
         user.put("role", "user");
-        user.put("content", LlmPromptTemplates.USER_PROMPT_TEMPLATE.formatted(contextJson));
+        user.put("content", AgentPromptTemplates.USER_PROMPT_TEMPLATE.formatted(contextJson));
         messages.add(user);
 
         root.set("messages", messages);
@@ -83,7 +83,7 @@ public class LlmClient {
         return mapper.writeValueAsString(root);
     }
 
-    private LlmResponse parseResponse(String body) throws IOException {
+    private AgentPlan parseResponse(String body) throws IOException {
         JsonNode root = mapper.readTree(body);
         JsonNode choice = root.path("choices").path(0);
         String finishReason = choice.path("finish_reason").asText("");
@@ -99,7 +99,7 @@ public class LlmClient {
         String contentText = messageContent.asText();
         try {
             JsonNode parsed = mapper.readTree(contentText);
-            return mapper.treeToValue(parsed, LlmResponse.class);
+            return mapper.treeToValue(parsed, AgentPlan.class);
         } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
             throw new IllegalStateException(
                     "LLM response content is not valid JSON: " + abbreviate(contentText, 500), ex);

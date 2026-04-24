@@ -12,9 +12,11 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.springframework.stereotype.Service;
 import com.example.config.RepoProperties;
+import com.example.llm.AgentPlan;
+import com.example.llm.AgentApplyResult;
 
 @Service
-public class LlmApplyService {
+public class AgentPatchApplier {
 
     private static final List<String> ALLOW_PREFIXES = List.of(
             "src/adservice/",
@@ -39,11 +41,11 @@ public class LlmApplyService {
 
     private final RepoProperties repoProperties;
 
-    public LlmApplyService(RepoProperties repoProperties) {
+    public AgentPatchApplier(RepoProperties repoProperties) {
         this.repoProperties = repoProperties;
     }
 
-    public LlmApplyResult apply(LlmResponse response) {
+    public AgentApplyResult apply(AgentPlan response) {
         String branchName = "autofix/" + Instant.now().toEpochMilli();
         List<String> filesTouched = new ArrayList<>();
         StringBuilder log = new StringBuilder();
@@ -51,7 +53,7 @@ public class LlmApplyService {
         try (Repository repo = openRepo(repoProperties.getPath());
              Git git = new Git(repo)) {
 
-            for (LlmResponse.Patch patch : response.patches()) {
+            for (AgentPlan.Patch patch : response.patches()) {
                 validatePatch(patch);
                 if (patch.patch() != null) {
                     collectTouchedFiles(patch.patch(), filesTouched);
@@ -61,9 +63,9 @@ public class LlmApplyService {
             git.checkout().setCreateBranch(true).setName(branchName).call();
 
             List<String> appliedFiles = new ArrayList<>();
-            List<LlmApplyResult.SkippedFile> skippedFiles = new ArrayList<>();
+            List<AgentApplyResult.SkippedFile> skippedFiles = new ArrayList<>();
 
-            for (LlmResponse.Patch patch : response.patches()) {
+            for (AgentPlan.Patch patch : response.patches()) {
                 boolean applied = false;
                 if (patch.find() != null && patch.replace() != null) {
                     applied = applyFindReplace(patch, log, filesTouched);
@@ -74,40 +76,29 @@ public class LlmApplyService {
                             applyUnifiedDiff(git, patch.patch(), log);
                             applied = true;
                         } catch (Exception ex) {
-                            skippedFiles.add(new LlmApplyResult.SkippedFile(patch.path(), "Diff apply failed: " + ex.getMessage()));
+                            skippedFiles.add(new AgentApplyResult.SkippedFile(patch.path(), "Diff apply failed: " + ex.getMessage()));
                         }
                     } else {
-                        skippedFiles.add(new LlmApplyResult.SkippedFile(patch.path(), "Find text not present and no diff provided"));
+                        skippedFiles.add(new AgentApplyResult.SkippedFile(patch.path(), "Find text not present and no diff provided"));
                     }
                 }
 
                 if (applied && !appliedFiles.contains(patch.path())) {
                     appliedFiles.add(patch.path());
                 } else if (!applied && skippedFiles.stream().noneMatch(s -> s.path().equals(patch.path()))) {
-                    skippedFiles.add(new LlmApplyResult.SkippedFile(patch.path(), "Not applied"));
+                    skippedFiles.add(new AgentApplyResult.SkippedFile(patch.path(), "Not applied"));
                 }
             }
 
-            Integer exit = null;
-            try {
-                exit = runCommand("mvn -q test", log);
-            } catch (IOException ioe) {
-                log.append("warn: mvn not found; skipping validation\n");
-            }
-            if (exit != null && exit != 0) {
-                git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).call();
-                return new LlmApplyResult(false, false, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), "Validation failed");
-            }
-
             if (appliedFiles.isEmpty()) {
-                return new LlmApplyResult(false, false, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), "No edits applied");
+                return new AgentApplyResult(false, false, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), "No edits applied");
             }
 
             git.commit().setAll(true).setMessage("chore: apply llm fixes").call();
-            return new LlmApplyResult(true, skippedFiles.isEmpty() ? false : true, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), skippedFiles.isEmpty() ? "Applied successfully" : "Applied with skips");
+            return new AgentApplyResult(true, skippedFiles.isEmpty() ? false : true, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), skippedFiles.isEmpty() ? "Applied successfully" : "Applied with skips");
         } catch (Exception e) {
             log.append("error: ").append(e.getMessage());
-            return new LlmApplyResult(false, false, branchName, List.of(), List.of(), log.toString(), "Apply failed");
+            return new AgentApplyResult(false, false, branchName, List.of(), List.of(), log.toString(), "Apply failed");
         }
     }
 
@@ -119,7 +110,7 @@ public class LlmApplyService {
                 .build();
     }
 
-    private void validatePatch(LlmResponse.Patch patch) {
+    private void validatePatch(AgentPlan.Patch patch) {
         String path = patch.path();
         boolean allowed = ALLOW_PREFIXES.stream().anyMatch(path::startsWith);
         if (!allowed) {
@@ -142,7 +133,7 @@ public class LlmApplyService {
         }
     }
 
-    private boolean applyFindReplace(LlmResponse.Patch patch, StringBuilder log, List<String> filesTouched) throws IOException {
+    private boolean applyFindReplace(AgentPlan.Patch patch, StringBuilder log, List<String> filesTouched) throws IOException {
         java.nio.file.Path target = Paths.get(repoProperties.getPath()).resolve(patch.path()).toAbsolutePath();
         log.append("repoRoot=").append(repoProperties.getPath())
                 .append(" patchPath=").append(patch.path())
@@ -223,22 +214,6 @@ public class LlmApplyService {
         }
     }
 
-    private int runCommand(String command, StringBuilder log) throws IOException, InterruptedException {
-        Process process = new ProcessBuilder()
-                .command(splitCommand(command))
-                .redirectErrorStream(true)
-                .start();
-        try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                log.append(line).append('\n');
-            }
-        }
-        int exit = process.waitFor();
-        log.append("exit code: ").append(exit).append('\n');
-        return exit;
-    }
-
     private void runGit(List<String> cmd, String workingDir, StringBuilder log) throws IOException, InterruptedException {
         List<String> effective = new ArrayList<>();
         if (workingDir != null && !workingDir.isBlank()) {
@@ -269,15 +244,6 @@ public class LlmApplyService {
             log.append("git command failed (exit ").append(exit).append("): ").append(String.join(" ", effective)).append('\n');
             throw new IllegalStateException("git apply failed with exit code " + exit);
         }
-    }
-
-    private List<String> splitCommand(String command) {
-        String[] parts = command.split(" ");
-        List<String> list = new ArrayList<>();
-        for (String p : parts) {
-            if (!p.isBlank()) list.add(p);
-        }
-        return list;
     }
 
     private String normalizeDiffPath(String name) {

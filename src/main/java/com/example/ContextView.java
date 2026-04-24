@@ -3,9 +3,9 @@ package com.example;
 import com.example.context.ContextAnalysisService;
 import com.example.context.ContextAssemblerService;
 import com.example.context.ContextPayload;
-import com.example.llm.LlmApplyResult;
-import com.example.llm.LlmApplyService;
-import com.example.llm.LlmResponse;
+import com.example.llm.AgentApplyResult;
+import com.example.llm.AgentPatchApplier;
+import com.example.llm.AgentPlan;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -23,14 +23,14 @@ public class ContextView extends VerticalLayout {
 
     private final ContextAssemblerService assemblerService;
     private final ContextAnalysisService analysisService;
-    private final LlmApplyService applyService;
+    private final AgentPatchApplier applyService;
     private final ObjectMapper mapper;
     private final TextArea output;
     private final TextArea llmOutput;
     private final TextArea applyOutput;
 
     @Autowired
-    public ContextView(ContextAssemblerService assemblerService, ContextAnalysisService analysisService, LlmApplyService applyService) {
+    public ContextView(ContextAssemblerService assemblerService, ContextAnalysisService analysisService, AgentPatchApplier applyService) {
         this.assemblerService = assemblerService;
         this.analysisService = analysisService;
         this.applyService = applyService;
@@ -85,7 +85,7 @@ public class ContextView extends VerticalLayout {
 
     private void analyze() {
         try {
-            LlmResponse response = analysisService.analyze();
+            AgentPlan response = analysisService.analyze();
             llmOutput.setValue(mapper.writeValueAsString(response));
         } catch (Exception ex) {
             Notification.show("LLM analysis failed: " + ex.getMessage());
@@ -99,8 +99,8 @@ public class ContextView extends VerticalLayout {
                 Notification.show("Run analysis first.");
                 return;
             }
-            LlmResponse response = mapper.readValue(llmText, LlmResponse.class);
-            LlmApplyResult result = applyService.apply(response);
+            AgentPlan response = mapper.readValue(llmText, AgentPlan.class);
+            AgentApplyResult result = applyService.apply(response);
             applyOutput.setValue(mapper.writeValueAsString(result));
         } catch (Exception ex) {
             Notification.show("Apply failed: " + ex.getMessage());

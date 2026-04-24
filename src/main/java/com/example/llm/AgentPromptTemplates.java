@@ -1,8 +1,8 @@
 package com.example.llm;
 
-public final class LlmPromptTemplates {
+public final class AgentPromptTemplates {
 
-    private LlmPromptTemplates() {
+    private AgentPromptTemplates() {
     }
 
     public static final String SYSTEM_PROMPT = """

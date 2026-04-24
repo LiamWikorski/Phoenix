@@ -1,7 +1,7 @@
 package com.example.context;
 
-import com.example.llm.LlmClient;
-import com.example.llm.LlmResponse;
+import com.example.llm.AgentLlmClient;
+import com.example.llm.AgentPlan;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 public class ContextAnalysisService {
 
     private final ContextAssemblerService assemblerService;
-    private final LlmClient llmClient;
+    private final AgentLlmClient llmClient;
     private final ObjectMapper mapper;
 
-    public ContextAnalysisService(ContextAssemblerService assemblerService, LlmClient llmClient) {
+    public ContextAnalysisService(ContextAssemblerService assemblerService, AgentLlmClient llmClient) {
         this.assemblerService = assemblerService;
         this.llmClient = llmClient;
         this.mapper = new ObjectMapper()
@@ -23,7 +23,7 @@ public class ContextAnalysisService {
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
-    public LlmResponse analyze() {
+    public AgentPlan analyze() {
         try {
             String contextJson = mapper.writeValueAsString(assemblerService.buildPayload());
             return llmClient.generate(contextJson);
