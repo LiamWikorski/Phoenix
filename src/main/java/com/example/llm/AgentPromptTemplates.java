@@ -70,6 +70,12 @@ Guidelines:
 Context payload:
 %s
 
+History usage rules:
+- Use historySummary before proposing fixes.
+- If assumedResolved is true, do not propose another patch for the same issue.
+- If newErrorAfterSuccessfulApply is true, assume the prior fix was insufficient and propose a different approach.
+- If the latest apply failed or was partial, avoid repeating the same failed approach.
+
 Generate the response following the schema. Do not include any text outside the JSON.
 """;
 }

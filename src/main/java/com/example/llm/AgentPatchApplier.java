@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import com.example.config.RepoProperties;
 import com.example.llm.AgentPlan;
 import com.example.llm.AgentApplyResult;
+import com.example.llm.history.AgentHistoryStore;
+import com.example.llm.history.ApplyHistoryEntry;
 
 @Service
 public class AgentPatchApplier {
@@ -40,9 +42,11 @@ public class AgentPatchApplier {
     );
 
     private final RepoProperties repoProperties;
+    private final AgentHistoryStore historyStore;
 
-    public AgentPatchApplier(RepoProperties repoProperties) {
+    public AgentPatchApplier(RepoProperties repoProperties, AgentHistoryStore historyStore) {
         this.repoProperties = repoProperties;
+        this.historyStore = historyStore;
     }
 
     public AgentApplyResult apply(AgentPlan response) {
@@ -91,15 +95,42 @@ public class AgentPatchApplier {
             }
 
             if (appliedFiles.isEmpty()) {
-                return new AgentApplyResult(false, false, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), "No edits applied");
+                AgentApplyResult result = new AgentApplyResult(false, false, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), "No edits applied");
+                appendHistory(result);
+                return result;
             }
 
             git.commit().setAll(true).setMessage("chore: apply llm fixes").call();
-            return new AgentApplyResult(true, skippedFiles.isEmpty() ? false : true, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), skippedFiles.isEmpty() ? "Applied successfully" : "Applied with skips");
+            AgentApplyResult result = new AgentApplyResult(true, skippedFiles.isEmpty() ? false : true, branchName, List.copyOf(appliedFiles), List.copyOf(skippedFiles), log.toString(), skippedFiles.isEmpty() ? "Applied successfully" : "Applied with skips");
+            appendHistory(result);
+            return result;
         } catch (Exception e) {
             log.append("error: ").append(e.getMessage());
-            return new AgentApplyResult(false, false, branchName, List.of(), List.of(), log.toString(), "Apply failed");
+            AgentApplyResult result = new AgentApplyResult(false, false, branchName, List.of(), List.of(), log.toString(), "Apply failed");
+            appendHistory(result);
+            return result;
         }
+    }
+
+    private void appendHistory(AgentApplyResult result) {
+        String logSummary = summarizeLog(result.log());
+        ApplyHistoryEntry entry = new ApplyHistoryEntry(
+                java.time.Instant.now(),
+                result.success(),
+                result.partialSuccess(),
+                result.branchName(),
+                result.appliedFiles(),
+                result.skippedFiles().stream().map(AgentApplyResult.SkippedFile::path).toList(),
+                result.message(),
+                logSummary
+        );
+        historyStore.appendApply(entry);
+    }
+
+    private String summarizeLog(String log) {
+        if (log == null) return "";
+        if (log.length() <= 400) return log;
+        return log.substring(0, 400) + "...";
     }
 
     private Repository openRepo(String repoPath) throws IOException {

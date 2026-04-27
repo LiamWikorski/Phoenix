@@ -2,3 +2,4 @@ target/*
 dev.properties
 breakdown.md
 node_modules
+agent-history.json
