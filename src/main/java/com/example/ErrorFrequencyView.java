@@ -12,6 +12,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -21,6 +23,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import elemental.json.Json;
 import elemental.json.JsonArray;
 
+@SpringComponent
+@UIScope
 @Route(value = "error-frequency", layout = MainLayout.class)
 @PageTitle("Frequency of Errors")
 public class ErrorFrequencyView extends VerticalLayout {
@@ -48,7 +52,7 @@ public class ErrorFrequencyView extends VerticalLayout {
 
         add(refreshButton, lastUpdated, chart, emptyState);
         chart.setWidthFull();
-        chart.setHeight("400px");
+        chart.setHeight("250px");
         chart.setVisible(false);
         emptyState.setVisible(false);
         expand(chart);
@@ -90,10 +94,17 @@ public class ErrorFrequencyView extends VerticalLayout {
         JsonArray values = Json.createArray();
         for (int i = 0; i < counts.size(); i++) {
             ErrorMessageCount count = counts.get(i);
-            labels.set(i, Json.create(count.message()));
+            labels.set(i, Json.create(truncate(count.message(), 24)));
             values.set(i, Json.create(count.count()));
         }
         chart.setData(labels, values);
+    }
+
+    private static String truncate(String value, int max) {
+        if (value == null) {
+            return "";
+        }
+        return value.length() <= max ? value : value.substring(0, max) + "…";
     }
 
     private void updateLastUpdated() {

@@ -9,6 +9,11 @@ public class ContextProperties {
 
     private int commitsLimit = 10;
 
+    /**
+     * Duration window (in ISO-8601 format, e.g. "PT48H") for incidents to include in context.
+     */
+    private String incidentsWindow = "PT48H";
+
     public int getIncidentsLimit() {
         return incidentsLimit;
     }
@@ -23,5 +28,13 @@ public class ContextProperties {
 
     public void setCommitsLimit(int commitsLimit) {
         this.commitsLimit = commitsLimit;
+    }
+
+    public String getIncidentsWindow() {
+        return incidentsWindow;
+    }
+
+    public void setIncidentsWindow(String incidentsWindow) {
+        this.incidentsWindow = incidentsWindow;
     }
 }

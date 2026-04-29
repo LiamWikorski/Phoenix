@@ -25,9 +25,20 @@ public class BigQueryIncidentService {
     private static final Logger LOGGER = LoggerFactory.getLogger(BigQueryIncidentService.class);
 
     private static final String INCIDENTS_QUERY = """
-            SELECT
-              *
+            WITH filtered AS (
+                SELECT *
+                FROM `{unifiedTable}`
+                WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL @windowHours HOUR)
+                ORDER BY timestamp DESC
+                LIMIT @limit
+            )
+            SELECT * FROM filtered;
+            """;
+
+    private static final String INCIDENTS_QUERY_NO_WINDOW = """
+            SELECT *
             FROM `{unifiedTable}`
+            ORDER BY timestamp DESC
             LIMIT @limit;
             """;
 
@@ -107,6 +118,11 @@ public class BigQueryIncidentService {
     }
 
     public List<IncidentRecord> fetchRecentIncidents(Duration window, int limit) {
+        if (window == null) {
+            LOGGER.error("fetchRecentIncidents called with null window; caller must supply a Duration");
+            throw new IllegalArgumentException("window must not be null");
+        }
+
         String unifiedTable = String.format("%s.%s.%s",
                 properties.getProjectId(), properties.getDataset(), properties.getUnifiedTable());
 
@@ -114,6 +130,7 @@ public class BigQueryIncidentService {
 
         QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryText)
                 .addNamedParameter("limit", QueryParameterValue.int64(limit))
+                .addNamedParameter("windowHours", QueryParameterValue.int64(Math.max(1, window.toHours())))
                 .setUseLegacySql(false)
                 .build();
 
@@ -139,6 +156,43 @@ public class BigQueryIncidentService {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             LOGGER.error("BigQuery incident query was interrupted", ex);
+            throw new RuntimeException("BigQuery incident query was interrupted", ex);
+        }
+    }
+
+    public List<IncidentRecord> fetchRecentIncidentsNoWindow(int limit) {
+        String unifiedTable = String.format("%s.%s.%s",
+                properties.getProjectId(), properties.getDataset(), properties.getUnifiedTable());
+
+        String queryText = INCIDENTS_QUERY_NO_WINDOW.replace("{unifiedTable}", unifiedTable);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryText)
+                .addNamedParameter("limit", QueryParameterValue.int64(limit))
+                .setUseLegacySql(false)
+                .build();
+
+        try {
+            TableResult result;
+            if (properties.getLocation() != null && !properties.getLocation().isBlank()) {
+                JobId.Builder jobIdBuilder = JobId.newBuilder()
+                        .setJob("phoenix_incidents_nowindow_" + UUID.randomUUID());
+                if (properties.getProjectId() != null && !properties.getProjectId().isBlank()) {
+                    jobIdBuilder.setProject(properties.getProjectId());
+                }
+                jobIdBuilder.setLocation(properties.getLocation());
+                result = bigQuery.query(queryConfig, jobIdBuilder.build());
+            } else {
+                result = bigQuery.query(queryConfig);
+            }
+            List<IncidentRecord> incidents = new ArrayList<>();
+            result.iterateAll().forEach(row -> incidents.add(mapRow(row)));
+            return incidents;
+        } catch (BigQueryException ex) {
+            LOGGER.error("Failed to load incidents from BigQuery (no window)", ex);
+            throw new RuntimeException("Unable to load incidents from BigQuery: " + ex.getMessage(), ex);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            LOGGER.error("BigQuery incident query was interrupted (no window)", ex);
             throw new RuntimeException("BigQuery incident query was interrupted", ex);
         }
     }

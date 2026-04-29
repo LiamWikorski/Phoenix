@@ -12,6 +12,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -22,6 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import elemental.json.Json;
 import elemental.json.JsonArray;
 
+@SpringComponent
+@UIScope
 @Route(value = "incidents-per-pod", layout = MainLayout.class)
 @PageTitle("Incidents per Service")
 public class IncidentsPerPodView extends VerticalLayout {
@@ -49,7 +53,7 @@ public class IncidentsPerPodView extends VerticalLayout {
 
         add(refreshButton, lastUpdated, chart, emptyState);
         chart.setWidthFull();
-        chart.setHeight("400px");
+        chart.setHeight("250px");
         chart.setVisible(false);
         emptyState.setVisible(false);
         expand(chart);

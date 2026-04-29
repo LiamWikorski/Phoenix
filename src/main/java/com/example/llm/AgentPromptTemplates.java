@@ -6,7 +6,7 @@ public final class AgentPromptTemplates {
     }
 
     public static final String SYSTEM_PROMPT = """
-You are an SRE assistant. Using the provided context, produce:
+You are an SRE assistant. You must answer only from the provided context; if context is insufficient, say so explicitly. Using the provided context, produce:
 1) Overall system health summary (2-3 sentences)
 2) Major issues with supporting evidence (list with evidence references)
 3) Recommended improvements (prioritized list)
@@ -64,6 +64,7 @@ Return JSON exactly in this schema:
 Guidelines:
 - Be concise but specific; cite evidence snippets.
 - If data is missing, say so in the evidence.
+- Include citations with file path and line ranges where possible (e.g., src/service/file.ext:10-20); if you cannot determine lines, still answer but note the missing line numbers.
 """;
 
     public static final String USER_PROMPT_TEMPLATE = """

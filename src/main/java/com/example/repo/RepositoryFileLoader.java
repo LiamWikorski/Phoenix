@@ -36,7 +36,8 @@ public class RepositoryFileLoader {
 
     static {
         ALLOWED_EXTENSIONS = Set.of(
-                ".java", ".ts", ".tsx", ".js", ".jsx", ".py", ".md", ".yaml", ".yml", ".go", ".sh", ".cs", ".html");
+                ".java", ".ts", ".tsx", ".js", ".jsx", ".py", ".md", ".yaml", ".yml", ".go", ".sh", ".cs", ".html",
+                ".json", ".proto", ".gradle", ".xml");
 
         DENY_FOLDERS = new HashSet<>();
         Collections.addAll(DENY_FOLDERS,

@@ -34,12 +34,8 @@ public class MainLayout extends AppLayout {
 
     private Component createDrawerContent() {
         SideNav navigation = new SideNav();
-        navigation.addItem(new SideNavItem("Recent Incidents", IncidentsView.class));
-        navigation.addItem(new SideNavItem("Incidents per Pod", IncidentsPerPodView.class));
-        navigation.addItem(new SideNavItem("Frequency of Errors", ErrorFrequencyView.class));
-        navigation.addItem(new SideNavItem("Error Volume (14d)", ErrorVolumeView.class));
-        navigation.addItem(new SideNavItem("GitHub Commits", CommitsView.class));
-        navigation.addItem(new SideNavItem("Context", ContextView.class));
+        navigation.addItem(new SideNavItem("Phoenix Agent", ContextView.class));
+        navigation.addItem(new SideNavItem("Dashboard", DashboardView.class));
         return navigation;
     }
 }

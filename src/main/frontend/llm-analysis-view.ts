@@ -80,13 +80,14 @@ export class LlmAnalysisView extends LitElement {
   }
 
   private renderApplySection() {
+    if (!this.data) return html``;
+
     return html`
       <section style="margin-top:12px; padding:8px; border:1px solid #ddd; border-radius:4px;">
         <div style="display:flex; gap:8px; align-items:center;">
-          <button @click=${this.applyPatches} ?disabled=${this.applying || !this.data}>
+          <button @click=${this.applyPatches} ?disabled=${this.applying}>
             ${this.applying ? 'Applying…' : 'Apply patches to temp branch'}
           </button>
-          ${!this.data ? html`<span>Run analysis first.</span>` : ''}
           ${this.error ? html`<span style="color:red;">${this.error}</span>` : ''}
         </div>
         ${this.applyResult ? this.renderApplyResult(this.applyResult) : ''}

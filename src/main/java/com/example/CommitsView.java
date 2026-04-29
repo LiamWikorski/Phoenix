@@ -4,20 +4,27 @@ import com.example.github.GithubCommitDto;
 import com.example.github.GithubCommitService;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.UIScope;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@SpringComponent
+@UIScope
 @Route(value = "commits", layout = MainLayout.class)
 @PageTitle("GitHub Commits")
 public class CommitsView extends VerticalLayout {
@@ -29,6 +36,7 @@ public class CommitsView extends VerticalLayout {
     private final GithubCommitService commitService;
     private final Grid<GithubCommitDto> commitsGrid = new Grid<>(GithubCommitDto.class, false);
     private final Button refreshButton = new Button("Refresh", event -> loadCommits());
+    private final Button expandButton = new Button("Expand", event -> openDialog());
     private final Span lastUpdated = new Span("Last updated: never");
 
     @Autowired
@@ -42,8 +50,15 @@ public class CommitsView extends VerticalLayout {
         configureGrid();
 
         refreshButton.setWidth("120px");
+        expandButton.setWidth("120px");
 
-        add(refreshButton, lastUpdated, commitsGrid);
+        HorizontalLayout actions = new HorizontalLayout(refreshButton, expandButton, lastUpdated);
+        actions.setWidthFull();
+        actions.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+        actions.setSpacing(true);
+        actions.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+
+        add(actions, commitsGrid);
         expand(commitsGrid);
     }
 
@@ -54,27 +69,32 @@ public class CommitsView extends VerticalLayout {
     }
 
     private void configureGrid() {
-        commitsGrid.addColumn(GithubCommitDto::authorName)
+        configureGrid(this.commitsGrid, false);
+    }
+
+    private void configureGrid(Grid<GithubCommitDto> grid, boolean dialogInstance) {
+        grid.addColumn(GithubCommitDto::authorName)
                 .setHeader("Author")
                 .setAutoWidth(true)
                 .setSortable(true);
 
-        commitsGrid.addColumn(dto -> truncateSha(dto.sha()))
+        grid.addColumn(dto -> truncateSha(dto.sha()))
                 .setHeader("SHA")
                 .setAutoWidth(true)
                 .setSortable(true);
 
-        commitsGrid.addColumn(dto -> formatTimestamp(dto.timestamp()))
+        grid.addColumn(dto -> formatTimestamp(dto.timestamp()))
                 .setHeader("Timestamp")
                 .setAutoWidth(true)
                 .setSortable(true);
 
-        commitsGrid.addColumn(GithubCommitDto::message)
+        grid.addColumn(GithubCommitDto::message)
                 .setHeader("Message")
                 .setFlexGrow(1)
-                .setAutoWidth(false);
+                .setAutoWidth(false)
+                .setWidth(dialogInstance ? "100%" : "420px");
 
-        commitsGrid.addColumn(new ComponentRenderer<>(dto -> {
+        grid.addColumn(new ComponentRenderer<>(dto -> {
             Anchor anchor = new Anchor(dto.url(), "View");
             anchor.setTarget("_blank");
             return anchor;
@@ -82,11 +102,12 @@ public class CommitsView extends VerticalLayout {
                 .setHeader("Commit")
                 .setAutoWidth(true);
 
-        commitsGrid.setSizeFull();
+        grid.setSizeFull();
     }
 
     private void loadCommits() {
         refreshButton.setEnabled(false);
+        expandButton.setEnabled(false);
         try {
             List<GithubCommitDto> commits = commitService.fetchRecentCommits();
             commitsGrid.setItems(commits);
@@ -95,7 +116,27 @@ public class CommitsView extends VerticalLayout {
             Notification.show("Unable to load commits. Reason: " + ex.getMessage());
         } finally {
             refreshButton.setEnabled(true);
+            expandButton.setEnabled(true);
         }
+    }
+
+    private void openDialog() {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("GitHub Commits");
+        dialog.setWidth("90vw");
+        dialog.setHeight("80vh");
+
+        Button close = new Button("Close", e -> dialog.close());
+        close.setWidth("120px");
+
+        Grid<GithubCommitDto> dialogGrid = new Grid<>(GithubCommitDto.class, false);
+        configureGrid(dialogGrid, true);
+        dialogGrid.setItems(commitsGrid.getListDataView().getItems().toList());
+        dialogGrid.setSizeFull();
+
+        dialog.getHeader().add(close);
+        dialog.add(dialogGrid);
+        dialog.open();
     }
 
     private void updateLastUpdated() {

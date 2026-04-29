@@ -13,6 +13,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.UIScope;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import elemental.json.Json;
 import elemental.json.JsonArray;
@@ -22,6 +24,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@SpringComponent
+@UIScope
 @Route(value = "error-volume", layout = MainLayout.class)
 @PageTitle("Error Volume (Last 14 Days)")
 public class ErrorVolumeView extends VerticalLayout {
@@ -51,9 +55,9 @@ public class ErrorVolumeView extends VerticalLayout {
         refreshButton.setWidth("120px");
 
         last7Chart.setWidthFull();
-        last7Chart.setHeight("300px");
+        last7Chart.setHeight("220px");
         prev7Chart.setWidthFull();
-        prev7Chart.setHeight("300px");
+        prev7Chart.setHeight("220px");
 
         add(refreshButton, lastUpdated,
                 last7Title, last7Chart,

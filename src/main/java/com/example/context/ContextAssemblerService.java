@@ -15,11 +15,16 @@ import com.example.repo.RepositoryContextAssembler;
 import com.example.repo.RepositoryContextResponse;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ContextAssemblerService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContextAssemblerService.class);
 
     private final BigQueryIncidentService incidentService;
     private final GithubCommitService commitService;
@@ -45,7 +50,9 @@ public class ContextAssemblerService {
     }
 
     public ContextPayload buildPayload() {
-        List<IncidentRecord> incidents = incidentService.fetchRecentIncidents(null, contextProperties.getIncidentsLimit());
+        Duration window = Duration.parse(contextProperties.getIncidentsWindow());
+        LOGGER.info("Building context with incidentsWindow={} and incidentsLimit={}", window, contextProperties.getIncidentsLimit());
+        List<IncidentRecord> incidents = incidentService.fetchRecentIncidents(window, contextProperties.getIncidentsLimit());
         List<PodIncidentCount> incidentsPerPod = incidentService.fetchIncidentCountsByPod();
 
         List<GithubCommitDto> commits = commitService.fetchRecentCommits().stream()
