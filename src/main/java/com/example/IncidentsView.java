@@ -7,6 +7,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -40,6 +41,7 @@ public class IncidentsView extends VerticalLayout {
 
     private final BigQueryIncidentService incidentService;
     private final Grid<IncidentRecord> incidentsGrid = new Grid<>(IncidentRecord.class, false);
+    private final H3 title = new H3("Recent Errors");
     private final Button refreshButton = new Button("Refresh", event -> loadIncidents());
     private final Button expandButton = new Button("Expand", event -> openDialog());
     private final Span lastUpdated = new Span("Last updated: never");
@@ -57,13 +59,15 @@ public class IncidentsView extends VerticalLayout {
         refreshButton.setWidth("120px");
         expandButton.setWidth("120px");
 
+        title.getStyle().set("margin", "0");
+
         HorizontalLayout actions = new HorizontalLayout(refreshButton, expandButton, lastUpdated);
         actions.setWidthFull();
         actions.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
         actions.setSpacing(true);
         actions.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
 
-        add(actions, incidentsGrid);
+        add(title, actions, incidentsGrid);
         expand(incidentsGrid);
     }
 

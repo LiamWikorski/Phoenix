@@ -7,6 +7,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -35,6 +36,7 @@ public class IncidentsPerPodView extends VerticalLayout {
             .withZone(ZoneId.systemDefault());
 
     private final BigQueryIncidentService incidentService;
+    private final H3 title = new H3("Incidents per Pod");
     private final Button refreshButton = new Button("Refresh", event -> loadData());
     private final Span lastUpdated = new Span("Last updated: never");
     private final Div emptyState = new Div();
@@ -51,7 +53,9 @@ public class IncidentsPerPodView extends VerticalLayout {
         configureEmptyState();
         refreshButton.setWidth("120px");
 
-        add(refreshButton, lastUpdated, chart, emptyState);
+        title.getStyle().set("margin", "0");
+
+        add(title, refreshButton, lastUpdated, chart, emptyState);
         chart.setWidthFull();
         chart.setHeight("250px");
         chart.setVisible(false);
