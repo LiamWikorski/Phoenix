@@ -13,8 +13,8 @@ import com.google.cloud.bigquery.TableResult;
 import java.time.Instant;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -324,12 +324,34 @@ public class BigQueryIncidentService {
                 getString(row.get("pod")),
                 getString(row.get("namespace")),
                 getString(row.get("severity")),
-                getString(row.get("message"))
+                getMessage(row)
         );
     }
 
+    /**
+     * Some log types (e.g. Stdout) store text in text_payload instead of message. Fall back accordingly.
+     */
+    private String getMessage(FieldValueList row) {
+        String message = getString(row.get("message"));
+        if (!message.isBlank()) {
+            return message;
+        }
+
+        String textPayload = getString(row.get("text_payload"));
+        if (!textPayload.isBlank()) {
+            return textPayload;
+        }
+
+        String jsonPayload = getString(row.get("json_payload"));
+        return jsonPayload;
+    }
+
     private PodIncidentCount mapPodCountRow(FieldValueList row) {
-        String pod = normalisePod(row.get("pod"));
+        String pod = getString(row.get("pod"));
+        if (pod.isBlank()) {
+            pod = "unknown";
+        }
+
         FieldValue countValue = row.get("incident_count");
         if (countValue == null || countValue.isNull()) {
             throw new IllegalStateException("Incident count is required for incidents-per-pod rows");
@@ -356,11 +378,6 @@ public class BigQueryIncidentService {
         }
         long count = countValue.getLongValue();
         return new DailyErrorCount(day, count);
-    }
-
-    private String normalisePod(FieldValue podValue) {
-        String pod = getString(podValue);
-        return (pod == null || pod.isBlank()) ? "unknown" : pod;
     }
 
     private String getString(FieldValue value) {

@@ -34,8 +34,8 @@ public class MainLayout extends AppLayout {
 
     private Component createDrawerContent() {
         SideNav navigation = new SideNav();
-        navigation.addItem(new SideNavItem("Phoenix Agent", ContextView.class));
         navigation.addItem(new SideNavItem("Dashboard", DashboardView.class));
+        navigation.addItem(new SideNavItem("Phoenix Agent", ContextView.class));
         return navigation;
     }
 }

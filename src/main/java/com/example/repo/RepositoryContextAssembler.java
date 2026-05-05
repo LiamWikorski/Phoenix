@@ -17,7 +17,11 @@ public class RepositoryContextAssembler {
     }
 
     public RepositoryContextResponse buildPayload() {
-        List<RepositoryFilePayload> files = loader.loadFiles();
+        return buildPayload(null);
+    }
+
+    public RepositoryContextResponse buildPayload(List<String> preferredPathTerms) {
+        List<RepositoryFilePayload> files = loader.loadFiles(preferredPathTerms);
         return new RepositoryContextResponse(repoProperties.getPath(), files);
     }
 }

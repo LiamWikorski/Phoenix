@@ -28,7 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @SpringComponent
 @UIScope
-@Route(value = "", layout = MainLayout.class)
+@Route(value = "incidents", layout = MainLayout.class)
 @PageTitle("Recent Incidents")
 public class IncidentsView extends VerticalLayout {
 

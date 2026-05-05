@@ -52,8 +52,8 @@ public class DashboardMetricsService {
                 .filter(r -> !r.timestamp().isBefore(now.minus(WINDOW_1H)))
                 .count();
 
-        Map<String, Long> podCounts = last48h.stream()
-                .collect(Collectors.groupingBy(IncidentRecord::pod, Collectors.counting()));
+        Map<String, Long> podCounts = incidentService.fetchIncidentCountsByPod().stream()
+                .collect(Collectors.toMap(PodIncidentCount::pod, PodIncidentCount::count));
         String topPod = podCounts.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)

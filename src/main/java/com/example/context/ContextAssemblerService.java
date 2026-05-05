@@ -61,7 +61,14 @@ public class ContextAssemblerService {
 
         String repository = githubProperties.getOwner() + "/" + githubProperties.getRepo();
 
-        RepositoryContextResponse repositoryContext = repositoryContextAssembler.buildPayload();
+        List<String> podTerms = incidentsPerPod.stream()
+                .map(PodIncidentCount::pod)
+                .filter(p -> p != null)
+                .map(String::trim)
+                .filter(p -> !p.isEmpty())
+                .toList();
+
+        RepositoryContextResponse repositoryContext = repositoryContextAssembler.buildPayload(podTerms);
 
         AgentHistoryStore.HistoryData history = historyStore.load();
         HistorySummary historySummary = computeHistorySummary(incidents, history.applies());

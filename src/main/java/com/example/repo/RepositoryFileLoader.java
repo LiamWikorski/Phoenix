@@ -51,6 +51,10 @@ public class RepositoryFileLoader {
     }
 
     public List<RepositoryFilePayload> loadFiles() {
+        return loadFiles(null);
+    }
+
+    public List<RepositoryFilePayload> loadFiles(List<String> preferredPathTerms) {
         String rootPath = repoProperties.getPath();
         if (rootPath == null || rootPath.isBlank()) {
             return List.of();
@@ -68,8 +72,10 @@ public class RepositoryFileLoader {
             return List.of();
         }
 
+        List<String> effectivePreferredPathTerms = effectivePreferredPathTerms(preferredPathTerms);
+
         List<ScoredFile> scored = collected.stream()
-                .map(this::score)
+                .map(payload -> score(payload, effectivePreferredPathTerms))
                 .toList();
 
         int maxScore = scored.stream()
@@ -133,14 +139,14 @@ public class RepositoryFileLoader {
         }
     }
 
-    private ScoredFile score(RepositoryFilePayload payload) {
+    private ScoredFile score(RepositoryFilePayload payload, List<String> preferredPathTerms) {
         String path = payload.getPath();
         String lowerPath = path.toLowerCase(ROOT);
         String fileName = extractFileName(lowerPath);
 
         int score = 0;
 
-        for (String term : PREFERRED_PATH_TERMS) {
+        for (String term : preferredPathTerms) {
             if (lowerPath.contains(term)) {
                 score += 3;
                 break;
@@ -178,6 +184,23 @@ public class RepositoryFileLoader {
     }
 
     private record ScoredFile(int score, RepositoryFilePayload payload) {
+    }
+
+    private List<String> effectivePreferredPathTerms(List<String> dynamicTerms) {
+        if (dynamicTerms == null) {
+            return PREFERRED_PATH_TERMS;
+        }
+
+        List<String> normalized = dynamicTerms.stream()
+                .map(term -> term == null ? "" : term.trim().toLowerCase(ROOT))
+                .filter(term -> !term.isBlank())
+                .toList();
+
+        if (normalized.isEmpty()) {
+            return PREFERRED_PATH_TERMS;
+        }
+
+        return normalized;
     }
 
     private boolean shouldSkipDir(String name) {
