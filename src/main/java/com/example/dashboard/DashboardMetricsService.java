@@ -4,7 +4,6 @@ import com.example.bigquery.BigQueryIncidentService;
 import com.example.bigquery.DailyErrorCount;
 import com.example.bigquery.ErrorMessageCount;
 import com.example.bigquery.IncidentRecord;
-import com.example.bigquery.PodIncidentCount;
 import com.example.github.GithubCommitDto;
 import com.example.github.GithubCommitService;
 import java.time.Duration;
@@ -52,8 +51,9 @@ public class DashboardMetricsService {
                 .filter(r -> !r.timestamp().isBefore(now.minus(WINDOW_1H)))
                 .count();
 
-        Map<String, Long> podCounts = incidentService.fetchIncidentCountsByPod().stream()
-                .collect(Collectors.toMap(PodIncidentCount::pod, PodIncidentCount::count));
+        Map<String, Long> podCounts = last48h.stream()
+                .filter(r -> !r.timestamp().isBefore(cutoff48h))
+                .collect(Collectors.groupingBy(r -> normalizePod(r.pod()), Collectors.counting()));
         String topPod = podCounts.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
@@ -125,5 +125,23 @@ public class DashboardMetricsService {
         }
         long hours = window.size() * 24L;
         return (double) hours / (double) totalErrors;
+    }
+
+    private String normalizePod(String pod) {
+        if (pod == null || pod.isBlank()) {
+            return "unknown";
+        }
+        if (pod.startsWith("adservice")) return "adservice";
+        if (pod.startsWith("cartservice")) return "cartservice";
+        if (pod.startsWith("checkoutservice")) return "checkoutservice";
+        if (pod.startsWith("currencyservice")) return "currencyservice";
+        if (pod.startsWith("emailservice")) return "emailservice";
+        if (pod.startsWith("frontend")) return "frontend";
+        if (pod.startsWith("paymentservice")) return "paymentservice";
+        if (pod.startsWith("productcatalogservice")) return "productcatalogservice";
+        if (pod.startsWith("recommendationservice")) return "recommendationservice";
+        if (pod.startsWith("redis-cart")) return "redis-cart";
+        if (pod.startsWith("shippingservice")) return "shippingservice";
+        return pod;
     }
 }

@@ -4,6 +4,7 @@ import com.example.config.GithubProperties;
 import java.io.IOException;
 import java.net.URL;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.kohsuke.github.GHCommit;
@@ -11,6 +12,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.PagedIterable;
 import org.kohsuke.github.GitUser;
+import org.kohsuke.github.HttpException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -48,9 +50,12 @@ public class GithubCommitService {
                     .limit(properties.getLimit())
                     .map(GithubCommitService::mapCommit)
                     .collect(Collectors.toList());
+        } catch (HttpException ex) {
+            LOGGER.warn("GitHub API returned an error while fetching commits (likely rate limit or service issue): {}", ex.getMessage());
+            return Collections.emptyList();
         } catch (IOException ex) {
-            LOGGER.error("Failed to fetch commits from GitHub", ex);
-            throw new RuntimeException("Unable to load commits from GitHub: " + ex.getMessage(), ex);
+            LOGGER.warn("Failed to fetch commits from GitHub: {}", ex.getMessage());
+            return Collections.emptyList();
         }
     }
 

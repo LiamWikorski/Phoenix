@@ -39,7 +39,7 @@ public class ErrorVolumeView extends VerticalLayout {
     private final Span lastUpdated = new Span("Last updated: never");
     private final Div emptyState = new Div();
     private final H3 last7Title = new H3("Errors per Day (Last 7 Days)");
-    private final H3 prev7Title = new H3("Errors per Day (Previous 7 Days)");
+    private final H3 prev7Title = new H3("Errors per Day (Days 8 to 14)");
     private final ErrorVolumeChart last7Chart = new ErrorVolumeChart();
     private final ErrorVolumeChart prev7Chart = new ErrorVolumeChart();
 

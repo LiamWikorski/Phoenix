@@ -36,7 +36,7 @@ public class IncidentsPerPodView extends VerticalLayout {
             .withZone(ZoneId.systemDefault());
 
     private final BigQueryIncidentService incidentService;
-    private final H3 title = new H3("Incidents per Pod");
+    private final H3 title = new H3("Incidents per Service");
     private final Button refreshButton = new Button("Refresh", event -> loadData());
     private final Span lastUpdated = new Span("Last updated: never");
     private final Div emptyState = new Div();

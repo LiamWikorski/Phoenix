@@ -47,7 +47,7 @@ public class DashboardView extends VerticalLayout {
                 card("Errors (last hour)", formatLong(metrics.errors1h()),
                         neutralBadge(),
                         "Time window: 1h"),
-                card("Top pod", ellipsize(metrics.topPod(), 18),
+                card("Top service", ellipsize(metrics.topPod(), 18),
                         mutedBadge(formatPct(metrics.topPodPct())),
                         formatLong(metrics.topPodCount()) + " incidents"),
                 card("Top error", ellipsize(metrics.topError(), 24),
@@ -55,7 +55,7 @@ public class DashboardView extends VerticalLayout {
                         formatLong(metrics.topErrorCount()) + " occurrences"),
                 card("Error volume (7d)", formatLong(metrics.errorVolume7d()),
                         deltaBadge(metrics.errorVolumeDeltaPct(), false),
-                        "vs prior 7d"),
+                        "vs day 8 - 14"),
                 card("Commits", formatLong(metrics.commits24h()) + " / " + formatLong(metrics.commits7d()),
                         mutedBadge("24h / 7d"),
                         "Recent commit activity"),
@@ -134,7 +134,7 @@ public class DashboardView extends VerticalLayout {
     private Div mtbfCard(double mtbfHours7d, double mtbfDeltaPct) {
         String title = "MTBF";
         String value;
-        String subtitle = "vs prior 7d";
+        String subtitle = "vs day 8 - 14";
         Span badge = deltaBadge(mtbfDeltaPct, true);
 
         if (Double.compare(mtbfHours7d, 0.0) == 0) {
