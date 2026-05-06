@@ -76,7 +76,6 @@ public class AgentLlmClient {
         messages.add(user);
 
         root.set("messages", messages);
-        root.put("temperature", 0.2);
         ObjectNode responseFormat = mapper.createObjectNode();
         responseFormat.put("type", "json_object");
         root.set("response_format", responseFormat);

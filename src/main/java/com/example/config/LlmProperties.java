@@ -7,7 +7,7 @@ public class LlmProperties {
 
     private String apiKey;
 
-    private String model = "gpt-5";
+    private String model = "gpt-4o-mini";
     
     private String endpoint = "https://api.openai.com/v1/chat/completions";
 

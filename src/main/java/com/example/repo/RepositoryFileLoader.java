@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -24,6 +25,7 @@ public class RepositoryFileLoader {
     private static final Set<String> DENY_FOLDERS;
     private static final String ROOT_DIR = "src";
     private static final long MAX_FILE_SIZE_BYTES = 50 * 1024; // 50KB
+    private static final int MAX_PRECOLLECT = 200;
     private static final int MAX_FILES = 20;
 
     private static final List<String> PREFERRED_PATH_TERMS = List.of(
@@ -62,17 +64,21 @@ public class RepositoryFileLoader {
 
         List<RepositoryFilePayload> collected = new ArrayList<>();
         Path repoRoot = Paths.get(rootPath);
+        Path srcRoot = repoRoot.resolve(ROOT_DIR);
 
-        Path start = repoRoot.resolve(ROOT_DIR);
-        if (Files.exists(start)) {
-            walk(start, repoRoot, collected);
+        List<String> effectivePreferredPathTerms = effectivePreferredPathTerms(preferredPathTerms);
+        List<Path> roots = resolveRoots(srcRoot, effectivePreferredPathTerms);
+
+        for (Path root : roots) {
+            walk(root, repoRoot, collected);
+            if (collected.size() >= MAX_PRECOLLECT) {
+                break;
+            }
         }
 
         if (collected.isEmpty()) {
             return List.of();
         }
-
-        List<String> effectivePreferredPathTerms = effectivePreferredPathTerms(preferredPathTerms);
 
         List<ScoredFile> scored = collected.stream()
                 .map(payload -> score(payload, effectivePreferredPathTerms))
@@ -105,7 +111,7 @@ public class RepositoryFileLoader {
     }
 
     private void walk(Path current, Path repoRoot, List<RepositoryFilePayload> results) {
-        if (results.size() >= MAX_FILES) {
+        if (results.size() >= MAX_PRECOLLECT) {
             return;
         }
 
@@ -118,7 +124,7 @@ public class RepositoryFileLoader {
                 try (var stream = Files.list(current)) {
                     for (Path child : (Iterable<Path>) stream::iterator) {
                         walk(child, repoRoot, results);
-                        if (results.size() >= MAX_FILES) {
+                        if (results.size() >= MAX_PRECOLLECT) {
                             return;
                         }
                     }
@@ -169,6 +175,28 @@ public class RepositoryFileLoader {
         }
 
         return new ScoredFile(score, payload);
+    }
+
+    private List<Path> resolveRoots(Path srcRoot, List<String> preferredPathTerms) {
+        Set<Path> roots = new LinkedHashSet<>();
+
+        if (preferredPathTerms != null) {
+            for (String term : preferredPathTerms) {
+                if (term == null || term.isBlank()) {
+                    continue;
+                }
+                Path candidate = srcRoot.resolve(term);
+                if (Files.isDirectory(candidate)) {
+                    roots.add(candidate);
+                }
+            }
+        }
+
+        if (roots.isEmpty() && Files.isDirectory(srcRoot)) {
+            roots.add(srcRoot);
+        }
+
+        return new ArrayList<>(roots);
     }
 
     private String extractFileName(String lowerPath) {
